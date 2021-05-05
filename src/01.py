@@ -11,7 +11,7 @@ https://wegonnamakeit.tistory.com/47
 '''
 
 
-MAX_EPOCH = 10
+MAX_EPOCH = 20
 
 
 import torch
