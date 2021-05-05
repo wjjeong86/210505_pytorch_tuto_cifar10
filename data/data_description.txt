@@ -1,4 +1,4 @@
-data
+data 
 ├── cifar10
 │   ├── test
 │   │   ├── airplane
