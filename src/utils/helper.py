@@ -58,6 +58,10 @@ def imshow(image):
         display(Image.fromarray(np.squeeze(np.uint8(image))))
     except:
         print('failed imshow')
+        
+import cv2
+def imread(P):
+    return cv2.cvtColor(cv2.imread(P,cv2.IMREAD_COLOR),cv2.COLOR_BGR2RGB)
 
 
     

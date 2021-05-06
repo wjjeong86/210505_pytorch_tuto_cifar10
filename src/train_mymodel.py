@@ -12,16 +12,17 @@ https://wegonnamakeit.tistory.com/47
 
 
 MAX_EPOCH = 20
+VALID_FOLD = [8,9]
 
 
-import torch
+import torch, torchvision, torchvision.transforms as transforms
+from utils.helper import *
+import cv2, pandas as pd
+from PIL import Image
+
+
 print(torch.__version__)
 print('GPU:',torch.cuda.is_available())
-
-import torchvision
-import torchvision.transforms as transforms
-
-
 
 
 
@@ -31,15 +32,17 @@ import torchvision.transforms as transforms
 가장 쉬운 구현을 따라서 구현해봄.
 
 '''
-import cv2
-from PIL import Image
-def imread(P):
-    return cv2.cvtColor(cv2.imread(P,cv2.IMREAD_COLOR),cv2.COLOR_BGR2RGB)
-def imshow(I):
-    display(Image.fromarray(np.uint8(np.squeeze(I))))
+df = pd.read_csv('meta_cifar10.csv',index_col=0)
+cond_vl = df['fold'].apply(lambda x: any([x==F for F in VALID_FOLD]))
+meta_tr = df.loc[~cond_vl].reset_index()
+meta_vl = df.loc[cond_vl].reset_index()
+
+
+
     
 class DatasetCifar10(torch.utils.data.Dataset):
     def __init__(self, meta):
+        super(DatasetCifar10,self).__init__()
         self.meta = meta
         return
     
@@ -54,25 +57,16 @@ class DatasetCifar10(torch.utils.data.Dataset):
         image = np.float32(image)/255.0
         
         return image, label, path
-    
-meta_tr = df.loc[df['fold']<8].reset_index()
-meta_vl = df.loc[df['fold']>=8].reset_index()
 
 ds_tr = DatasetCifar10(meta_tr)
-dl_tr = torch.utils.data.DataLoader(dataset = ds_tr, 
-                                 batch_size=32,
-                                 shuffle=True,
-                                )
+dl_tr = torch.utils.data.DataLoader(dataset = ds_tr,batch_size=32,shuffle=True)
 ds_vl = DatasetCifar10(meta_vl)
-dl_vl = torch.utils.data.DataLoader(dataset=ds_vl,
-                                   batch_size=32,
-                                   shuffle=False,
-                                   )
+dl_vl = torch.utils.data.DataLoader(dataset=ds_vl,batch_size=32,shuffle=False)
 
 
-for image, label, path in dl_vl:
-    print( image, label, path )    
-    break;
+# for image, label, path in dl_vl:
+#     print( image, label, path )    
+#     break;
 
 
     
@@ -101,9 +95,9 @@ def BRC(Cin,Cout):
         conv33(Cin,Cout)
     )
     
-class MLP3(nn.Module):
+class mymodel(nn.Module):
     def __init__(self):
-        super(MLP3, self).__init__()
+        super(mymodel, self).__init__()
         # 32->16->8->fc
         self.entry_conv_01 = conv33(3,32)
         
@@ -144,11 +138,11 @@ class MLP3(nn.Module):
         
         return logits
 
-model = MLP3().to(device)
+model = mymodel().to(device)
 print(model)
 
-pred = model(image.to(device))
-pred.shape
+# pred = model(image.to(device))
+# pred.shape
 
 
 
@@ -218,5 +212,19 @@ for i_epoch in range(i_epoch,MAX_EPOCH):
     
     
     
+    
+'''================================================== save '''
+
+### 가중치만 저장 로드
+# torch.save(model.state_dict(),'mmymodelodel.weight')
+# model = mymodel()
+# model.load_state_dict(torch.load('mymodel.weight'))
+# model.eval()
 
 
+### 모델구조와 가중치 같이 저장
+torch.save(model,'mymodel.all')
+model = torch.load('mymodel.all')
+pred = model(image.to(device)).to('cpu')
+max1 = pred.argmax(dim=1)
+hit = max1==label
